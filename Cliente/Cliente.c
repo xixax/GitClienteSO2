@@ -4,6 +4,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 
+#include "Jogo.h"
+
 
 //#define PIPE_NAME TEXT("\\\\.\\pipe\\teste")
 #define PIPE_NAME1 TEXT("\\\\.\\pipe\\teste1")//Le
@@ -14,13 +16,16 @@ DWORD WINAPI EscrevePipe(LPVOID param){
 	TCHAR buf[256];
 	HANDLE pipe = (HANDLE)param;
 	DWORD n;
+	Jogo j;
 	while (1){//estes while(1) são para modificar
 		//Ler do terminal
 		_tprintf(TEXT("[CLIENTE] Frase: "));
-		_fgetts(buf, 256, stdin);
+		//_fgetts(buf, 256, stdin);
+		_fgetts(j.buf, 256, stdin);
 		//escrever para o named pipe
 		//enviar a struct
-		WriteFile(pipe, buf, 256, &n, NULL);
+		//WriteFile(pipe, buf, 256, &n, NULL);
+		WriteFile(pipe, (LPCVOID)&j, sizeof(j), &n, NULL);
 	}
 	return 0;
 }
@@ -31,10 +36,13 @@ int _tmain(int argc, LPTSTR argv[]){
 	int i = 0;
 	BOOL ret;
 	DWORD n;
+	Jogo j;
 #ifdef UNICODE 
 	_setmode(_fileno(stdin), _O_WTEXT);
 	_setmode(_fileno(stdout), _O_WTEXT);
 #endif
+	//aloca memoria
+	//j = malloc(sizeof(Jogo));
 
 	_tprintf(TEXT("[CLIENTE]Esperar pelo pipe '%s'(WaitNamedPipe)\n"), PIPE_NAME1);
 	if (!WaitNamedPipe(PIPE_NAME1, NMPWAIT_WAIT_FOREVER)) {
@@ -60,12 +68,15 @@ int _tmain(int argc, LPTSTR argv[]){
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)EscrevePipe, (LPVOID)hPipe2, 0, NULL);
 	_tprintf(TEXT("[CLIENTE]Liguei-me...\n"));
 	while (1) {
-		ret = ReadFile(hPipe1, buf, sizeof(buf), &n, NULL);
+		//ret = ReadFile(hPipe1, buf, sizeof(buf), &n, NULL);
+		ret = ReadFile(hPipe1, (LPVOID)&j, sizeof(j), &n, NULL);
 		if (n > 0){
-			buf[(n / sizeof(TCHAR))-1] = '\0'; //pos=255
+			//buf[(n / sizeof(TCHAR)) - 1] = '\0'; //pos=255
+			j.buf[(n / sizeof(TCHAR))-1] = '\0'; //pos=255
 			if (!ret || !n)
 				break;
-			_tprintf(TEXT("\n[CLIENTE] Recebi %d bytes: '%s'... (ReadFile)\n"), n, buf);
+			//_tprintf(TEXT("\n[CLIENTE] Recebi %d bytes: '%s'... (ReadFile)\n"), n, buf);
+			_tprintf(TEXT("\n[CLIENTE] Recebi %d bytes: '%s'... (ReadFile)\n"), n, j.buf);
 		}
 	}
 	CloseHandle(hPipe1);
