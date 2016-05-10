@@ -5,12 +5,12 @@
 #include <stdio.h>
 
 #include "Jogo.h"
-
+#include "Mensagem.h"
 
 #define PIPE_NAME1 TEXT("\\\\.\\pipe\\teste1")//Le
 #define PIPE_NAME2 TEXT("\\\\.\\pipe\\teste2")//Escreve
 
-
+//Função do João
 DWORD WINAPI EscrevePipe(LPVOID param){
 	TCHAR buf[256];
 	HANDLE pipe = (HANDLE)param;
@@ -27,13 +27,82 @@ DWORD WINAPI EscrevePipe(LPVOID param){
 	return 0;
 }
 
+BOOL escreveMensagem(Mensagem * msg, HANDLE hPipe, DWORD nBytes) {
+	if (!WriteFile(hPipe, (LPCVOID)&msg, sizeof(msg), nBytes, NULL)) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+BOOL leMensagem(Mensagem * msg, HANDLE hPipe, DWORD * nBytes) {
+	if (!ReadFile(hPipe, (LPVOID)&msg, sizeof(msg), &nBytes, NULL)) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+BOOL leJogo(Jogo * jogo, HANDLE hPipe, DWORD * nBytes) {
+	if (!ReadFile(hPipe, (LPVOID)&jogo, sizeof(jogo), &nBytes, NULL)) {
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+void pedeOpcao(Mensagem * msg) {
+	int option;
+	BOOL flag = FALSE;
+
+	do {
+		_tprintf(TEXT("0 - Fazer Login\n1 - Efetuar Registo"));
+		_tscanf("%d", &option);
+
+		switch (option) {
+		case 0: msg->comando = 4; flag = TRUE;  break;
+		case 1: msg->comando = 5; flag = TRUE; break;
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n"));
+		}
+	} while (!flag);
+
+	_tprintf(TEXT("USERNAME: "));
+	_fgetts(msg->Username, 30, stdin);
+
+	_tprintf(TEXT("PASSWORD: "));
+	_fgetts(msg->Password, 30, stdin);
+}
+
+void escolheopcoes(Mensagem * msg) {
+	int option;
+	BOOL flag = FALSE;
+
+	do {
+		_tprintf(TEXT("0 - Criar Novo Jogo\n1 - Juntar Jogo"));
+		_tscanf("%d", &option);
+
+		switch (option) {
+		case 0: msg->comando = 6; flag = TRUE;  break;
+		case 1: msg->comando = 7; flag = TRUE; break;
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n"));
+		}
+	} while (!flag);
+}
+
+void iniciaJogo(Jogo * jogo) {
+
+}
+
 int _tmain(int argc, LPTSTR argv[]){
 	TCHAR buf[256];
 	HANDLE hPipe1, hPipe2;
 	int i = 0;
-	BOOL ret;
+	int option;
+	BOOL ret, enviou, recebeu;
 	DWORD n;
 	Jogo j;
+	Mensagem msg;
+
 #ifdef UNICODE 
 	_setmode(_fileno(stdin), _O_WTEXT);
 	_setmode(_fileno(stdout), _O_WTEXT);
@@ -58,6 +127,64 @@ int _tmain(int argc, LPTSTR argv[]){
 		_tprintf(TEXT("[ERRO] Ligar ao pipe '%s'... (CreateFile)\n"), PIPE_NAME2);
 		exit(-1);
 	}
+
+	/////////////////////////////////////////////////////////////////////
+	/////                   Código André                           /////
+	///////////////////////////////////////////////////////////////////
+
+	//Pergunta ao utilizador se quer fazer LOGIN/REGISTO
+	pedeOpcao(&msg);
+	
+
+	//Enviar mensagem ao servidor
+	enviou = escreveMensagem(&msg, hPipe2, n);
+
+	if (!enviou) {
+		_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
+		return 0;
+	}
+
+	//Receber mensagem do servidor
+	recebeu = leMensagem(&msg, hPipe1, &n);
+
+	if (!recebeu) {
+		_tprintf(TEXT("[CLIENTE]: A mensagem nao foi recebida!\n"));
+		return 0;
+	}
+
+	//Não foi bem sucessido
+	if (msg.sucesso == 0) {
+		_tprintf(TEXT("[CLIENTE]: O pedido nao foi bem sucedido!\n"));
+		//Tem que voltar a pedir para fazer o registo ou o login
+		return 0;
+	}
+
+	//Foi efetuado o login/registo, pedir novas informações ao utilizador
+	if (msg.sucesso == 1)
+		escolheopcoes(&msg);
+
+	//Envia ao servidor a resposta
+	enviou = escreveMensagem(&msg, hPipe2, n);
+
+	if (!enviou) {
+		_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
+		return 0;
+	}
+
+	//Vai receber o jogo e não uma mensagem
+	recebeu = leJogo(&j, hPipe1, &n);
+
+	if (!recebeu) {
+		_tprintf(TEXT("[CLIENTE]: Erro a receber o jogo!\n"));
+		return 0;
+	}
+	else {
+		iniciaJogo(&j);
+	}
+
+
+
+
 
 	//criaçao da thread que envia dados e recebe
 	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)EscrevePipe, (LPVOID)hPipe2, 0, NULL);
