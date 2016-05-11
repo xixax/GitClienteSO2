@@ -56,7 +56,7 @@ void pedeOpcao(Mensagem * msg) {
 	BOOL flag = FALSE;
 
 	do {
-		_tprintf(TEXT("0 - Fazer Login\n1 - Efetuar Registo"));
+		_tprintf(TEXT("0 - Fazer Login\n1 - Efetuar Registo\n\nComando-> "));
 		_tscanf("%d", &option);
 
 		switch (option) {
@@ -78,7 +78,7 @@ void escolheopcoes(Mensagem * msg) {
 	BOOL flag = FALSE;
 
 	do {
-		_tprintf(TEXT("0 - Criar Novo Jogo\n1 - Juntar Jogo"));
+		_tprintf(TEXT("0 - Criar Novo Jogo\n1 - Juntar Jogo\n\nComando ->"));
 		_tscanf("%d", &option);
 
 		switch (option) {
@@ -89,8 +89,30 @@ void escolheopcoes(Mensagem * msg) {
 	} while (!flag);
 }
 
-void iniciaJogo(Jogo * jogo) {
+void iniciaJogo(Jogo * jogo, Mensagem * msg) {
+	BOOL enviou, flag = FALSE;
+	int option;
 
+	while (1) {
+		do {
+			_tprintf(TEXT("0 - Cima\n1 - Baixo\n2 - Esquerda\n3 - Direita\n\nComando-> "));
+			_tscanf("%d", &option);
+
+			switch (option) {
+			case 0: msg->comando = 0; flag = TRUE;  break;
+			case 1: msg->comando = 1; flag = TRUE; break;
+			case 2: msg->comando = 2; flag = TRUE; break;
+			case 3: msg->comando = 3; flag = TRUE; break;
+			default:_tprintf(TEXT("Introduza um comando válido!\n"));
+			}
+		} while (!flag);
+
+		//Escrever o comando enviado ao servidor
+		
+		flag = FALSE;
+	}
+
+	
 }
 
 int _tmain(int argc, LPTSTR argv[]){
@@ -134,7 +156,6 @@ int _tmain(int argc, LPTSTR argv[]){
 
 	//Pergunta ao utilizador se quer fazer LOGIN/REGISTO
 	pedeOpcao(&msg);
-	
 
 	//Enviar mensagem ao servidor
 	enviou = escreveMensagem(&msg, hPipe2, n);
@@ -179,7 +200,7 @@ int _tmain(int argc, LPTSTR argv[]){
 		return 0;
 	}
 	else {
-		iniciaJogo(&j);
+		iniciaJogo(&j, &msg);
 	}
 
 
