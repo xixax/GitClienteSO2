@@ -89,10 +89,11 @@ void escolheopcoes(Mensagem * msg) {
 	} while (!flag);
 }
 
-void iniciaJogo(Jogo * jogo, Mensagem * msg) {
-	BOOL enviou, flag = FALSE;
+void iniciaJogo(Jogo * jogo, Mensagem * msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n) {
+	BOOL enviou, recebeu,  flag = FALSE;
 	int option;
 
+	//Ciclo de envio de comandos
 	while (1) {
 		do {
 			_tprintf(TEXT("0 - Cima\n1 - Baixo\n2 - Esquerda\n3 - Direita\n\nComando-> "));
@@ -108,8 +109,24 @@ void iniciaJogo(Jogo * jogo, Mensagem * msg) {
 		} while (!flag);
 
 		//Escrever o comando enviado ao servidor
-		
-		flag = FALSE;
+		enviou = escreveMensagem(&msg, hPipe2, &n);
+
+		if (!enviou) {
+			_tprintf(TEXT("[Cliente]: Erro ao enviar mensagem\n"));
+			exit(-1);
+		}
+
+		//Se enviou com sucesso recebe jogo do servidor
+		recebeu = leJogo(&jogo, hPipe1, &n);
+
+		if (!recebeu) {
+			_tprintf(TEXT("[Cliente]: Erro ao receber mensagem\n"));
+			exit(-1);
+		}
+		else {
+			flag = FALSE;
+			//Processa a jogada
+		}
 	}
 
 	
@@ -200,10 +217,8 @@ int _tmain(int argc, LPTSTR argv[]){
 		return 0;
 	}
 	else {
-		iniciaJogo(&j, &msg);
+		iniciaJogo(&j, &msg, hPipe1, hPipe2, &n);
 	}
-
-
 
 
 
