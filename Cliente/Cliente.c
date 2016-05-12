@@ -45,10 +45,12 @@ BOOL leMensagem(Mensagem * msg,Mensagem auxmsg, HANDLE hPipe, DWORD * nBytes) {
 	return TRUE;
 }
 
-BOOL leJogo(Jogo * jogo, HANDLE hPipe, DWORD * nBytes) {
-	if (!ReadFile(hPipe, (LPVOID)&jogo, sizeof(jogo), &nBytes, NULL)) {
+BOOL leJogo(Jogo * jogo,Jogo auxjogo, HANDLE hPipe, DWORD * nBytes) {
+	if (!ReadFile(hPipe, (LPVOID)&auxjogo, sizeof(auxjogo), &nBytes, NULL)) {
 		return FALSE;
 	}
+
+	*jogo = auxjogo;
 
 	return TRUE;
 }
@@ -93,7 +95,7 @@ void escolheopcoes(Mensagem * msg) {
 	} while (!flag);
 }
 
-void iniciaJogo(Jogo * jogo, Mensagem * msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n) {
+void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n) {
 	BOOL enviou, recebeu,  flag = FALSE;
 	int option;
 
@@ -104,16 +106,16 @@ void iniciaJogo(Jogo * jogo, Mensagem * msg, HANDLE hPipe1, HANDLE hPipe2, DWORD
 			_tscanf("%d", &option);
 
 			switch (option) {
-			case 0: msg->comando = 0; flag = TRUE;  break;
-			case 1: msg->comando = 1; flag = TRUE; break;
-			case 2: msg->comando = 2; flag = TRUE; break;
-			case 3: msg->comando = 3; flag = TRUE; break;
+			case 0: msg.comando = 0; flag = TRUE;  break;
+			case 1: msg.comando = 1; flag = TRUE; break;
+			case 2: msg.comando = 2; flag = TRUE; break;
+			case 3: msg.comando = 3; flag = TRUE; break;
 			default:_tprintf(TEXT("Introduza um comando válido!\n"));
 			}
 		} while (!flag);
 
 		//Escrever o comando enviado ao servidor
-		enviou = escreveMensagem(&msg, hPipe2, &n);
+		enviou = escreveMensagem(msg, hPipe2, &n);
 
 		if (!enviou) {
 			_tprintf(TEXT("[Cliente]: Erro ao enviar mensagem\n"));
@@ -121,7 +123,7 @@ void iniciaJogo(Jogo * jogo, Mensagem * msg, HANDLE hPipe1, HANDLE hPipe2, DWORD
 		}
 
 		//Se enviou com sucesso recebe jogo do servidor
-		recebeu = leJogo(&jogo, hPipe1, &n);
+		recebeu = leJogo(&jogo,jogo,hPipe1, &n);
 
 		if (!recebeu) {
 			_tprintf(TEXT("[Cliente]: Erro ao receber mensagem\n"));
@@ -216,14 +218,14 @@ int _tmain(int argc, LPTSTR argv[]){
 	}
 
 	//Vai receber o jogo e não uma mensagem
-	recebeu = leJogo(&j, hPipe1, &n);
+	recebeu = leJogo(&j, j,hPipe1, &n);
 
 	if (!recebeu) {
 		_tprintf(TEXT("[CLIENTE]: Erro a receber o jogo!\n"));
 		return 0;
 	}
 	else {
-		iniciaJogo(&j, &msg, hPipe1, hPipe2, &n);
+		iniciaJogo(j, msg, hPipe1, hPipe2, &n);
 	}
 
 
