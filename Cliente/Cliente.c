@@ -93,7 +93,46 @@ void escolheopcoes(Mensagem * msg) {
 	} while (!flag);
 }
 
-void iniciaJogo(Jogo * jogo) {
+void iniciaJogo(Jogo * jogo, Mensagem * msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n) {
+	BOOL enviou, recebeu,  flag = FALSE;
+	int option;
+
+	//Ciclo de envio de comandos
+	while (1) {
+		do {
+			_tprintf(TEXT("0 - Cima\n1 - Baixo\n2 - Esquerda\n3 - Direita\n\nComando-> "));
+			_tscanf("%d", &option);
+
+			switch (option) {
+			case 0: msg->comando = 0; flag = TRUE;  break;
+			case 1: msg->comando = 1; flag = TRUE; break;
+			case 2: msg->comando = 2; flag = TRUE; break;
+			case 3: msg->comando = 3; flag = TRUE; break;
+			default:_tprintf(TEXT("Introduza um comando válido!\n"));
+			}
+		} while (!flag);
+
+		//Escrever o comando enviado ao servidor
+		enviou = escreveMensagem(&msg, hPipe2, &n);
+
+		if (!enviou) {
+			_tprintf(TEXT("[Cliente]: Erro ao enviar mensagem\n"));
+			exit(-1);
+		}
+
+		//Se enviou com sucesso recebe jogo do servidor
+		recebeu = leJogo(&jogo, hPipe1, &n);
+
+		if (!recebeu) {
+			_tprintf(TEXT("[Cliente]: Erro ao receber mensagem\n"));
+			exit(-1);
+		}
+		else {
+			flag = FALSE;
+			//Processa a jogada
+		}
+	}
+
 
 }
 
@@ -137,25 +176,24 @@ int _tmain(int argc, LPTSTR argv[]){
 	///////////////////////////////////////////////////////////////////
 
 	do{
-		//Pergunta ao utilizador se quer fazer LOGIN/REGISTO
-		pedeOpcao(&msg);
-
-
-		//Enviar mensagem ao servidor
+	//Pergunta ao utilizador se quer fazer LOGIN/REGISTO
+	pedeOpcao(&msg);
+	
+	//Enviar mensagem ao servidor
 		enviou = escreveMensagem(msg, hPipe2, &n);
 
-		if (!enviou) {
-			_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
-			return 0;
-		}
+	if (!enviou) {
+		_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
+		return 0;
+	}
 
-		//Receber mensagem do servidor
+	//Receber mensagem do servidor
 		recebeu = leMensagem(&msg,msg, hPipe1, &n);
 
-		if (!recebeu) {
-			_tprintf(TEXT("[CLIENTE]: A mensagem nao foi recebida!\n"));
-			return 0;
-		}
+	if (!recebeu) {
+		_tprintf(TEXT("[CLIENTE]: A mensagem nao foi recebida!\n"));
+		return 0;
+	}
 
 	} while (msg.sucesso != 1);//faz isto enquanto der erro
 	//Não foi bem sucessido
@@ -185,10 +223,8 @@ int _tmain(int argc, LPTSTR argv[]){
 		return 0;
 	}
 	else {
-		iniciaJogo(&j);
+		iniciaJogo(&j, &msg, hPipe1, hPipe2, &n);
 	}
-
-
 
 
 
