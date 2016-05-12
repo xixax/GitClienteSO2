@@ -79,7 +79,10 @@
     <ClCompile Include="Cliente.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Jogador.h" />
     <ClInclude Include="Jogo.h" />
+    <ClInclude Include="Main.h" />
+    <ClInclude Include="Mapa.h" />
     <ClInclude Include="Mensagem.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
