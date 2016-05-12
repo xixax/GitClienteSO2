@@ -27,7 +27,7 @@ DWORD WINAPI EscrevePipe(LPVOID param){
 	return 0;
 }
 
-BOOL escreveMensagem(Mensagem * msg, HANDLE hPipe, DWORD nBytes) {
+BOOL escreveMensagem(Mensagem msg, HANDLE hPipe, DWORD nBytes) {
 	if (!WriteFile(hPipe, (LPCVOID)&msg, sizeof(msg), nBytes, NULL)) {
 		return FALSE;
 	}
@@ -35,10 +35,12 @@ BOOL escreveMensagem(Mensagem * msg, HANDLE hPipe, DWORD nBytes) {
 	return TRUE;
 }
 
-BOOL leMensagem(Mensagem * msg, HANDLE hPipe, DWORD * nBytes) {
-	if (!ReadFile(hPipe, (LPVOID)&msg, sizeof(msg), &nBytes, NULL)) {
+BOOL leMensagem(Mensagem * msg,Mensagem auxmsg, HANDLE hPipe, DWORD * nBytes) {
+	if (!ReadFile(hPipe, (LPVOID)&auxmsg, sizeof(auxmsg), &nBytes, NULL)) {
 		return FALSE;
 	}
+
+	*msg = auxmsg;
 
 	return TRUE;
 }
@@ -56,8 +58,8 @@ void pedeOpcao(Mensagem * msg) {
 	BOOL flag = FALSE;
 
 	do {
-		_tprintf(TEXT("0 - Fazer Login\n1 - Efetuar Registo"));
-		_tscanf("%d", &option);
+		_tprintf(TEXT("0 - Fazer Login\n1 - Efetuar Registo\nOpção:"));
+		_tscanf(TEXT("%d"), &option);
 
 		switch (option) {
 		case 0: msg->comando = 4; flag = TRUE;  break;
@@ -67,10 +69,12 @@ void pedeOpcao(Mensagem * msg) {
 	} while (!flag);
 
 	_tprintf(TEXT("USERNAME: "));
-	_fgetts(msg->Username, 30, stdin);
+	_tscanf(TEXT("%s"), msg->Username);
+	//_fgetts(msg->Username, 30, stdin);
 
 	_tprintf(TEXT("PASSWORD: "));
-	_fgetts(msg->Password, 30, stdin);
+	_tscanf(TEXT("%s"), msg->Password);
+	//_fgetts(msg->Password, 30, stdin);
 }
 
 void escolheopcoes(Mensagem * msg) {
@@ -78,8 +82,8 @@ void escolheopcoes(Mensagem * msg) {
 	BOOL flag = FALSE;
 
 	do {
-		_tprintf(TEXT("0 - Criar Novo Jogo\n1 - Juntar Jogo"));
-		_tscanf("%d", &option);
+		_tprintf(TEXT("0 - Criar Novo Jogo\n1 - Juntar Jogo\nOpção:"));
+		_tscanf(TEXT("%d"), &option);
 
 		switch (option) {
 		case 0: msg->comando = 6; flag = TRUE;  break;
@@ -132,39 +136,41 @@ int _tmain(int argc, LPTSTR argv[]){
 	/////                   Código André                           /////
 	///////////////////////////////////////////////////////////////////
 
-	//Pergunta ao utilizador se quer fazer LOGIN/REGISTO
-	pedeOpcao(&msg);
-	
+	do{
+		//Pergunta ao utilizador se quer fazer LOGIN/REGISTO
+		pedeOpcao(&msg);
 
-	//Enviar mensagem ao servidor
-	enviou = escreveMensagem(&msg, hPipe2, n);
 
-	if (!enviou) {
-		_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
-		return 0;
-	}
+		//Enviar mensagem ao servidor
+		enviou = escreveMensagem(msg, hPipe2, &n);
 
-	//Receber mensagem do servidor
-	recebeu = leMensagem(&msg, hPipe1, &n);
+		if (!enviou) {
+			_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
+			return 0;
+		}
 
-	if (!recebeu) {
-		_tprintf(TEXT("[CLIENTE]: A mensagem nao foi recebida!\n"));
-		return 0;
-	}
+		//Receber mensagem do servidor
+		recebeu = leMensagem(&msg,msg, hPipe1, &n);
 
+		if (!recebeu) {
+			_tprintf(TEXT("[CLIENTE]: A mensagem nao foi recebida!\n"));
+			return 0;
+		}
+
+	} while (msg.sucesso != 1);//faz isto enquanto der erro
 	//Não foi bem sucessido
-	if (msg.sucesso == 0) {
+	/*if (msg.sucesso == 0) {
 		_tprintf(TEXT("[CLIENTE]: O pedido nao foi bem sucedido!\n"));
 		//Tem que voltar a pedir para fazer o registo ou o login
 		return 0;
-	}
+	}*/
 
 	//Foi efetuado o login/registo, pedir novas informações ao utilizador
 	if (msg.sucesso == 1)
 		escolheopcoes(&msg);
 
 	//Envia ao servidor a resposta
-	enviou = escreveMensagem(&msg, hPipe2, n);
+	enviou = escreveMensagem(msg, hPipe2, n);
 
 	if (!enviou) {
 		_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
