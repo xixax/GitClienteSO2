@@ -2,7 +2,7 @@
 #include "Mapa.h"
 
 typedef struct Jogos{
-	Mapa **mapa;
+	Mapa *mapa;
 	Jogador jogador;//utilizado para enviar o jogador do cliente
 	//monstro
 	// _TCHARbuf[256];

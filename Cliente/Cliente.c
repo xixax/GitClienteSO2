@@ -62,7 +62,7 @@ void pedeOpcao(Mensagem * msg) {
 		switch (option) {
 		case 0: msg->comando = 4; flag = TRUE;  break;
 		case 1: msg->comando = 5; flag = TRUE; break;
-		default:_tprintf(TEXT("Introduza uma opcao valida!\n"));
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); break;
 		}
 	} while (!flag);
 
@@ -90,7 +90,7 @@ DWORD WINAPI opcaoIniciarJogo(LPVOID param){
 		case 0: msg.comando = 8; flag = TRUE;  
 			escreveMensagem(&msg, pipeEnvia, &n);
 			break;
-		default:_tprintf(TEXT("Introduza uma opcao valida!\n"));
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); break;
 		}
 	} while (!flag);
 }
@@ -106,7 +106,7 @@ void escolheopcoes(Mensagem * msg) {
 		switch (option) {
 		case 0: msg->comando = 6; flag = TRUE;  break;
 		case 1: msg->comando = 7; flag = TRUE; break;
-		default:_tprintf(TEXT("Introduza uma opcao valida!\n"));
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); break;
 		}
 	} while (!flag);
 }
@@ -117,16 +117,17 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 
 	//Ciclo de envio de comandos
 	while (1) {
+		_tprintf(TEXT("\n\nJogador\nVida:%d\nLentidao:%d\nPedras:%d\nPosx:%d\nPosy:%d\n\n"),jogo.jogador.vida,jogo.jogador.lentidao,jogo.jogador.pedras,jogo.jogador.posx,jogo.jogador.posy);
 		do {
 			_tprintf(TEXT("0 - Cima\n1 - Baixo\n2 - Esquerda\n3 - Direita\n\nComando-> "));
-			_tscanf("%d", &option);
+			_tscanf(TEXT("%d"), &option);
 
 			switch (option) {
 			case 0: msg.comando = 0; flag = TRUE;  break;
 			case 1: msg.comando = 1; flag = TRUE; break;
 			case 2: msg.comando = 2; flag = TRUE; break;
 			case 3: msg.comando = 3; flag = TRUE; break;
-			default:_tprintf(TEXT("Introduza um comando válido!\n"));
+			default:_tprintf(TEXT("Introduza um comando válido!\n")); break;
 			}
 		} while (!flag);
 
@@ -156,7 +157,7 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 
 int _tmain(int argc, LPTSTR argv[]){
 	TCHAR buf[256];
-	HANDLE hPipe1, hPipe2;
+	HANDLE hPipe1, hPipe2, hopcaoIniciarJogo;
 	int i = 0;
 	int option;
 	BOOL ret, enviou, recebeu;
@@ -233,16 +234,26 @@ int _tmain(int argc, LPTSTR argv[]){
 
 	} while (j.mapa==NULL);
 
-	CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)opcaoIniciarJogo, (LPVOID)hPipe2, 0, NULL);//thread para qualquer jogador possa iniciar o jogo, caso alguem comece esta threa e terminada
+	hopcaoIniciarJogo = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)opcaoIniciarJogo, (LPVOID)hPipe2, 0, NULL);//thread para qualquer jogador possa iniciar o jogo, caso alguem comece esta threa e terminada
 
 	do{
-		recebeu = leJogo(&msg, hPipe1, &n);//recebe informacao do servidor que o jogo vai comecar
+		recebeu = leMensagem(&msg, hPipe1, &n);//recebe informacao do servidor que o jogo vai comecar
 	} while (msg.comando!=8);
+
+	//terminar a thread opcaoIniciarJogo porque ja foi iniciado
+	TerminateThread(hopcaoIniciarJogo, 0);
+	CloseHandle(hopcaoIniciarJogo);
 
 	recebeu = leJogo(&j, hPipe1, &n);//recebe o jogo completo, pronto a jogar
 	if (recebeu){
 		iniciaJogo(j, msg, hPipe1, hPipe2, &n);
 	}
+	else{
+		_tprintf(TEXT("[CLIENTE]: Nao foi possivel entrar no jogo!\n"));
+		return 0;
+	}
+
+	//falta thread que espera para actualizar o jogo, para multiplayer
 
 	//criaçao da thread que envia dados e recebe
 	/*CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)EscrevePipe, (LPVOID)hPipe2, 0, NULL);
