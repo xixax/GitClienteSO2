@@ -10,22 +10,8 @@
 #define PIPE_NAME1 TEXT("\\\\.\\pipe\\teste1")//Le
 #define PIPE_NAME2 TEXT("\\\\.\\pipe\\teste2")//Escreve
 
-//Função do João
-/*DWORD WINAPI EscrevePipe(LPVOID param){
-	TCHAR buf[256];
-	HANDLE pipe = (HANDLE)param;
-	DWORD n;
-	Jogo j;
-	while (1){//estes while(1) são para modificar
-		//Ler do terminal
-		_tprintf(TEXT("[CLIENTE] Frase: "));
-		_fgetts(j.buf, 256, stdin);
-		//escrever para o named pipe
-		//enviar a struct
-		WriteFile(pipe, (LPCVOID)&j, sizeof(j), &n, NULL);
-	}
-	return 0;
-}*/
+Jogo j;//preciso disto aqui, pois so podemos enviar 1 parametro para dentro de uma thread
+BOOLEAN flgSegundaFase;//necessario para desbloquear jogadores da segunda fase
 
 BOOL escreveMensagem(Mensagem * msg, HANDLE hPipe, DWORD nBytes) {
 	if (!WriteFile(hPipe, (LPCVOID)msg, sizeof(*msg), nBytes, NULL)) {
@@ -80,19 +66,18 @@ DWORD WINAPI opcaoIniciarJogo(LPVOID param){
 	Mensagem msg;
 	DWORD n;
 	HANDLE pipeEnvia = (HANDLE)param;
-	BOOL flag = FALSE;
 
 	do {
 		_tprintf(TEXT("0 - para comecar o jogo\nOpção:"));
 		_tscanf(TEXT("%d"), &option);
 
 		switch (option) {
-		case 0: msg.comando = 8; flag = TRUE;  
+		case 0: msg.comando = 8; flgSegundaFase = TRUE;
 			escreveMensagem(&msg, pipeEnvia, &n);
 			break;
 		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); break;
 		}
-	} while (!flag);
+	} while (!flgSegundaFase);
 }
 
 void escolheopcoes(Mensagem * msg) {
@@ -155,15 +140,30 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 
 }
 
+DWORD WINAPI actualizaJogo(LPVOID param){
+	TCHAR buf[256];
+	HANDLE pipe = (HANDLE)param;
+	DWORD n;
+	BOOL recebeu;
+	while (1){
+		recebeu = leJogo(&j, pipe, &n);
+		if (recebeu){
+			_tprintf(TEXT("\n\nJogador\nVida:%d\nLentidao:%d\nPedras:%d\nPosx:%d\nPosy:%d\n\n"), j.jogador.vida, j.jogador.lentidao, j.jogador.pedras, j.jogador.posx, j.jogador.posy);
+			_tprintf(TEXT("0 - Cima\n1 - Baixo\n2 - Esquerda\n3 - Direita\n\nComando-> "));
+		}
+	}
+	return 0;
+}
+
 int _tmain(int argc, LPTSTR argv[]){
 	TCHAR buf[256];
-	HANDLE hPipe1, hPipe2, hopcaoIniciarJogo;
+	HANDLE hPipe1, hPipe2, hopcaoIniciarJogo, hactualizaJogo;
 	int i = 0;
 	int option;
 	BOOL ret, enviou, recebeu;
 	DWORD n;
-	Jogo j;
 	Mensagem msg;
+	flgSegundaFase = FALSE;
 
 #ifdef UNICODE 
 	_setmode(_fileno(stdin), _O_WTEXT);
@@ -218,6 +218,7 @@ int _tmain(int argc, LPTSTR argv[]){
 	//Não foi bem sucessido
 
 	//Foi efetuado o login/registo, pedir novas informações ao utilizador
+	
 	do{
 		escolheopcoes(&msg);
 
@@ -234,39 +235,35 @@ int _tmain(int argc, LPTSTR argv[]){
 
 	} while (j.mapa==NULL);
 
+	
+	//necessario para desbloquear os outros jogadores da segunda faase
+
 	hopcaoIniciarJogo = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)opcaoIniciarJogo, (LPVOID)hPipe2, 0, NULL);//thread para qualquer jogador possa iniciar o jogo, caso alguem comece esta threa e terminada
 
 	do{
 		recebeu = leMensagem(&msg, hPipe1, &n);//recebe informacao do servidor que o jogo vai comecar
 	} while (msg.comando!=8);
-
+	if (flgSegundaFase==FALSE){
+		enviou = escreveMensagem(&msg, hPipe2, &n);
+	}
 	//terminar a thread opcaoIniciarJogo porque ja foi iniciado
 	TerminateThread(hopcaoIniciarJogo, 0);
 	CloseHandle(hopcaoIniciarJogo);
 
 	recebeu = leJogo(&j, hPipe1, &n);//recebe o jogo completo, pronto a jogar
 	if (recebeu){
+		hactualizaJogo = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)actualizaJogo, (LPVOID)hPipe2, 0, NULL);//thread para qualquer jogador possa iniciar o jogo, caso alguem comece esta threa e terminada, falta ver o pq de isto nao estar a funcionar :)
 		iniciaJogo(j, msg, hPipe1, hPipe2, &n);
+		TerminateThread(hactualizaJogo, 0);
+		CloseHandle(hactualizaJogo);
 	}
 	else{
 		_tprintf(TEXT("[CLIENTE]: Nao foi possivel entrar no jogo!\n"));
 		return 0;
 	}
+	
+	//falta quando acaba o jogo voltar ao menu principal
 
-	//falta thread que espera para actualizar o jogo, para multiplayer
-
-	//criaçao da thread que envia dados e recebe
-	/*CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)EscrevePipe, (LPVOID)hPipe2, 0, NULL);
-	_tprintf(TEXT("[CLIENTE]Liguei-me...\n"));
-	while (1) {
-		ret = ReadFile(hPipe1, (LPVOID)&j, sizeof(j), &n, NULL);
-		if (n > 0){
-			j.buf[(n / sizeof(TCHAR))-1] = '\0'; //pos=255
-			if (!ret || !n)
-				break;
-			_tprintf(TEXT("\n[CLIENTE] Recebi %d bytes: '%s'... (ReadFile)\n"), n, j.buf);
-		}
-	}*/
 	CloseHandle(hPipe1);
 	CloseHandle(hPipe2);
 
