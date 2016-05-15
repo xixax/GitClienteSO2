@@ -3,6 +3,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include  <signal.h>
 
 #include "Jogo.h"
 #include "Mensagem.h"
@@ -66,18 +67,29 @@ DWORD WINAPI opcaoIniciarJogo(LPVOID param){
 	Mensagem msg;
 	DWORD n;
 	HANDLE pipeEnvia = (HANDLE)param;
+	DWORD waitCode;
 
+	_tprintf(TEXT("0 - para comecar o jogo\nOpção:"));
 	do {
-		_tprintf(TEXT("0 - para comecar o jogo\nOpção:"));
-		_tscanf(TEXT("%d"), &option);
-
-		switch (option) {
-		case 0: msg.comando = 8; flgSegundaFase = TRUE;
-			escreveMensagem(&msg, pipeEnvia, &n);
+		waitCode = WaitForSingleObject(GetStdHandle(STD_INPUT_HANDLE), 1000);
+		switch (waitCode){
+		case WAIT_OBJECT_0://normal status
+			_tscanf(TEXT("%d"), &option);
+			switch (option) {
+			case 0: msg.comando = 8; flgSegundaFase = TRUE;
+				escreveMensagem(&msg, pipeEnvia, &n);
+				break;
+			case 1:
+				break;
+			default:_tprintf(TEXT("Introduza uma opcao valida!\n"));
+				_tprintf(TEXT("0 - para comecar o jogo\nOpção:"));
+				break;
+			}
 			break;
-		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); break;
 		}
 	} while (!flgSegundaFase);
+
+	return 0;
 }
 
 void escolheopcoes(Mensagem * msg) {
@@ -99,13 +111,14 @@ void escolheopcoes(Mensagem * msg) {
 void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n) {
 	BOOL enviou, recebeu,  flag = FALSE;
 	int option;
+	TCHAR buff[20];
 
 	//Ciclo de envio de comandos
 	while (1) {
 		_tprintf(TEXT("\n\nJogador\nVida:%d\nLentidao:%d\nPedras:%d\nPosx:%d\nPosy:%d\n\n"),jogo.jogador.vida,jogo.jogador.lentidao,jogo.jogador.pedras,jogo.jogador.posx,jogo.jogador.posy);
 		do {
 			_tprintf(TEXT("0 - Cima\n1 - Baixo\n2 - Esquerda\n3 - Direita\n\nComando-> "));
-			_tscanf(TEXT("%d"), &option);
+			_tscanf(TEXT("%d"), &option);//O PROBLEMA ESTA AQUI, NAO SEI O PQ MAS NA SEGUNDA EXECUCAO O TSCANF NAO ACEITA VALORES
 
 			switch (option) {
 			case 0: msg.comando = 0; flag = TRUE;  break;
@@ -190,10 +203,6 @@ int _tmain(int argc, LPTSTR argv[]){
 		exit(-1);
 	}
 
-	/////////////////////////////////////////////////////////////////////
-	/////                   Código André                           /////
-	///////////////////////////////////////////////////////////////////
-
 	do{
 	//Pergunta ao utilizador se quer fazer LOGIN/REGISTO
 	pedeOpcao(&msg);
@@ -245,14 +254,13 @@ int _tmain(int argc, LPTSTR argv[]){
 	} while (msg.comando!=8);
 	if (flgSegundaFase==FALSE){
 		enviou = escreveMensagem(&msg, hPipe2, &n);
+		flgSegundaFase = TRUE;
 	}
 	//terminar a thread opcaoIniciarJogo porque ja foi iniciado
-	TerminateThread(hopcaoIniciarJogo, 0);
-	CloseHandle(hopcaoIniciarJogo);
 
 	recebeu = leJogo(&j, hPipe1, &n);//recebe o jogo completo, pronto a jogar
 	if (recebeu){
-		hactualizaJogo = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)actualizaJogo, (LPVOID)hPipe2, 0, NULL);//thread para qualquer jogador possa iniciar o jogo, caso alguem comece esta threa e terminada, falta ver o pq de isto nao estar a funcionar :)
+		hactualizaJogo = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)actualizaJogo, (LPVOID)hPipe1, 0, NULL);//thread para qualquer jogador possa iniciar o jogo, caso alguem comece esta threa e terminada, falta ver o pq de isto nao estar a funcionar :)
 		iniciaJogo(j, msg, hPipe1, hPipe2, &n);
 		TerminateThread(hactualizaJogo, 0);
 		CloseHandle(hactualizaJogo);
@@ -267,6 +275,6 @@ int _tmain(int argc, LPTSTR argv[]){
 	CloseHandle(hPipe1);
 	CloseHandle(hPipe2);
 
-	Sleep(200);
+
 	return 0;
 }
