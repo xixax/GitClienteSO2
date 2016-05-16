@@ -49,7 +49,8 @@ void pedeOpcao(Mensagem * msg) {
 		switch (option) {
 		case 0: msg->comando = 4; flag = TRUE;  break;
 		case 1: msg->comando = 5; flag = TRUE; break;
-		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); break;
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); 
+			break;
 		}
 	} while (!flag);
 
@@ -103,7 +104,8 @@ void escolheopcoes(Mensagem * msg) {
 		switch (option) {
 		case 0: msg->comando = 6; flag = TRUE;  break;
 		case 1: msg->comando = 7; flag = TRUE; break;
-		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); break;
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); 
+			break;
 		}
 	} while (!flag);
 }
@@ -125,7 +127,8 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 			case 1: msg.comando = 1; flag = TRUE; break;
 			case 2: msg.comando = 2; flag = TRUE; break;
 			case 3: msg.comando = 3; flag = TRUE; break;
-			default:_tprintf(TEXT("Introduza um comando válido!\n")); break;
+			default:_tprintf(TEXT("Introduza um comando válido!\n")); 
+				break;
 			}
 		} while (!flag);
 
