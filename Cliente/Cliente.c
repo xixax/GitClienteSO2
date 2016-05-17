@@ -18,7 +18,6 @@ BOOL escreveMensagem(Mensagem * msg, HANDLE hPipe, DWORD nBytes) {
 	if (!WriteFile(hPipe, (LPCVOID)msg, sizeof(*msg), nBytes, NULL)) {
 		return FALSE;
 	}
-
 	return TRUE;
 }
 
