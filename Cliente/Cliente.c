@@ -51,6 +51,7 @@ void pedeOpcao(Mensagem * msg) {
 		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); 
 			break;
 		}
+		fflush(stdin);
 	} while (!flag);
 
 	_tprintf(TEXT("USERNAME: "));
@@ -87,6 +88,7 @@ DWORD WINAPI opcaoIniciarJogo(LPVOID param){
 			}
 			break;
 		}
+		fflush(stdin);
 	} while (!flgSegundaFase);
 
 	return 0;
@@ -103,9 +105,10 @@ void escolheopcoes(Mensagem * msg) {
 		switch (option) {
 		case 0: msg->comando = 6; flag = TRUE;  break;
 		case 1: msg->comando = 7; flag = TRUE; break;
-		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); 
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n"));
 			break;
 		}
+		fflush(stdin);
 	} while (!flag);
 }
 
@@ -129,6 +132,7 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 			default:_tprintf(TEXT("Introduza um comando válido!\n")); 
 				break;
 			}
+			fflush(stdin);
 		} while (!flag);
 
 		//Escrever o comando enviado ao servidor
@@ -155,7 +159,7 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 
 }
 
-DWORD WINAPI actualizaJogo(LPVOID param){
+DWORD WINAPI actualizaJogo(LPVOID param){ //aqui recebe o timer
 	TCHAR buf[256];
 	HANDLE pipe = (HANDLE)param;
 	DWORD n;
@@ -240,10 +244,8 @@ int _tmain(int argc, LPTSTR argv[]){
 			_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
 			return 0;
 		}
-
 		//Vai receber o jogo e não uma mensagem
 		recebeu = leJogo(&j,hPipe1, &n);
-
 	} while (j.mapa==NULL);
 
 	
