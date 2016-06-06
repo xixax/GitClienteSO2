@@ -3,7 +3,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include  <signal.h>
+#include <signal.h>
 
 #include "Jogo.h"
 #include "Mensagem.h"
