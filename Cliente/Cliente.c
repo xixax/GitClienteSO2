@@ -13,12 +13,12 @@
 
 Jogo j;//preciso disto aqui, pois so podemos enviar 1 parametro para dentro de uma thread
 BOOLEAN flgSegundaFase;//necessario para desbloquear jogadores da segunda fase
+int lentidao;
 
 BOOL escreveMensagem(Mensagem * msg, HANDLE hPipe, DWORD nBytes) {
 	if (!WriteFile(hPipe, (LPCVOID)msg, sizeof(*msg), nBytes, NULL)) {
 		return FALSE;
 	}
-
 	return TRUE;
 }
 
@@ -52,6 +52,7 @@ void pedeOpcao(Mensagem * msg) {
 		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); 
 			break;
 		}
+		fflush(stdin);
 	} while (!flag);
 
 	_tprintf(TEXT("USERNAME: "));
@@ -88,6 +89,7 @@ DWORD WINAPI opcaoIniciarJogo(LPVOID param){
 			}
 			break;
 		}
+		fflush(stdin);
 	} while (!flgSegundaFase);
 
 	return 0;
@@ -104,9 +106,10 @@ void escolheopcoes(Mensagem * msg) {
 		switch (option) {
 		case 0: msg->comando = 6; flag = TRUE;  break;
 		case 1: msg->comando = 7; flag = TRUE; break;
-		default:_tprintf(TEXT("Introduza uma opcao valida!\n")); 
+		default:_tprintf(TEXT("Introduza uma opcao valida!\n"));
 			break;
 		}
+		fflush(stdin);
 	} while (!flag);
 }
 
@@ -117,6 +120,7 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 
 	//Ciclo de envio de comandos
 	while (1) {
+		lentidao = 0;
 		_tprintf(TEXT("\n\nJogador\nVida:%d\nLentidao:%d\nPedras:%d\nPosx:%d\nPosy:%d\n\n"),jogo.jogador.vida,jogo.jogador.lentidao,jogo.jogador.pedras,jogo.jogador.posx,jogo.jogador.posy);
 		do {
 			_tprintf(TEXT("0 - Cima\n1 - Baixo\n2 - Esquerda\n3 - Direita\n\nComando-> "));
@@ -130,6 +134,7 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 			default:_tprintf(TEXT("Introduza um comando válido!\n")); 
 				break;
 			}
+			fflush(stdin);
 		} while (!flag);
 
 		//Escrever o comando enviado ao servidor
@@ -151,12 +156,17 @@ void iniciaJogo(Jogo jogo, Mensagem msg, HANDLE hPipe1, HANDLE hPipe2, DWORD * n
 			flag = FALSE;
 			//Processa a jogada
 		}
+
+		while (lentidao < jogo.jogador.lentidao){
+			/*espera ativa, não sei se correto*/
+			//_tprintf(TEXT("[Cliente]: LENTIDAO:%d\n"),lentidao);
+		}
 	}
 
 
 }
 
-DWORD WINAPI actualizaJogo(LPVOID param){
+DWORD WINAPI actualizaJogo(LPVOID param){ //aqui recebe o timer
 	TCHAR buf[256];
 	HANDLE pipe = (HANDLE)param;
 	DWORD n;
@@ -166,6 +176,7 @@ DWORD WINAPI actualizaJogo(LPVOID param){
 		if (recebeu){
 			_tprintf(TEXT("\n\nJogador\nVida:%d\nLentidao:%d\nPedras:%d\nPosx:%d\nPosy:%d\n\n"), j.jogador.vida, j.jogador.lentidao, j.jogador.pedras, j.jogador.posx, j.jogador.posy);
 			_tprintf(TEXT("0 - Cima\n1 - Baixo\n2 - Esquerda\n3 - Direita\n\nComando-> "));
+			lentidao++;
 		}
 	}
 	return 0;
@@ -241,10 +252,8 @@ int _tmain(int argc, LPTSTR argv[]){
 			_tprintf(TEXT("[CLIENTE]: A mensagem nao foi enviada!\n"));
 			return 0;
 		}
-
 		//Vai receber o jogo e não uma mensagem
 		recebeu = leJogo(&j,hPipe1, &n);
-
 	} while (j.mapa==NULL);
 
 	
