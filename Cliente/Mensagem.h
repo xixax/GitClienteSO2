@@ -1,4 +1,4 @@
-
+#include "Main.h"
 
 typedef struct Mensagem{
 	_TCHAR Username[30];
